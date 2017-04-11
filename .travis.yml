@@ -1,0 +1,35 @@
+language: python
+python:
+  - "2.7"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+
+notifications:
+  email: never
+
+addons:
+  postgresql: "9.4"
+
+services:
+  - postgresql
+
+# command to install dependencies
+install: 
+  - pip install -U pip wheel
+  - pip install -r requirements.txt
+  - pip install -U pytest
+  - pip install -U coverage 
+  - pip install -U coveralls 
+  - pip install -U .
+
+before_script:
+  - psql -c 'create database pawprint_test_db;' -U postgres
+        
+# command to run tests
+script: 
+  - coverage run --source pawprint -m pytest tests -v
+  - coverage report -m --fail-under=90
+
+after_success:
+  - coveralls 

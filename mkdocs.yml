@@ -1,0 +1,27 @@
+site_name: pawprint
+repo_url: https://github.com/cbredev/pawprint/
+repo_name: Github
+site_author: Quentin CAUDRON
+
+markdown_extensions:
+  - markdown_include.include 
+  - toc:
+      permalink: []
+      baselevel: 1
+
+pages:
+  - General:
+    - pawprint: index.md
+    - Quick start: quickstart.md
+  - Tracking events:
+    - Getting set up: setup.md
+    - Writing events: writing.md
+    - Reading events: reading.md
+    - Aggregating: aggregating.md
+  - Derived metrics:
+    - Statistics: statistics.md
+  - About:
+    - License: license.md
+
+extra_css:
+  - custom.css
