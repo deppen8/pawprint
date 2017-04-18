@@ -122,15 +122,19 @@ class TestPawprintStatistics(object):
         assert np.all(sessions.total_events == events)
 
         self.stats.sessions(clean=False)
-
         assert len(self.stats["sessions"].read()) == 5
 
+        # Test that calculating sessions with no new data doesn't error
+        self.stats.sessions()
+
     @drop_table_before_and_after("engagement")
+    @drop_table_before_and_after("sessions")
     def test_engagement(self):
         """Test the calculation of user engagement metrics."""
 
         # Calculate user engagement
-        self.stats.engagement(clean=True)
+        self.stats.sessions(clean=True)
+        self.stats.engagement(clean=True, min_sessions=0)
 
         # Read the results
         stickiness = self.stats["engagement"].read()
@@ -146,3 +150,29 @@ class TestPawprintStatistics(object):
         assert np.all(stickiness.wau == wau)
         assert np.all(stickiness.mau == mau)
         assert np.all(stickiness.engagement == engagement)
+        assert set(stickiness.columns) == {"date", "dau", "wau", "mau", "engagement"}
+
+        # Now test with a minimum number of sessions
+        self.stats.engagement(clean=True, min_sessions=2)
+        stickiness = self.stats["engagement"].read()
+
+        # Ground truth
+        active = np.array([1, 1])
+        engagement_active = np.array([1, 1])
+
+        assert np.all(stickiness.dau_active == active)
+        assert np.all(stickiness.wau_active == active)
+        assert np.all(stickiness.mau_active == active)
+        assert np.all(stickiness.dau == dau)
+        assert np.all(stickiness.engagement_active == engagement_active)
+        assert set(stickiness.columns) == {"date", "dau", "wau", "mau", "engagement", "dau_active",
+                                           "wau_active", "mau_active", "engagement_active"}
+
+        # Test with too large a minimum sessions parameter
+        self.stats.engagement(clean=True, min_sessions=20)
+        stickiness = self.stats["engagement"].read()
+        assert len(stickiness) == 2
+        assert set(stickiness.columns) == {"date", "dau", "wau", "mau", "engagement"}
+
+        # Test that running engagements again doesn't error if there's no new data
+        self.stats.engagement()

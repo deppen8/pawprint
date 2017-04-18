@@ -288,6 +288,15 @@ class Tracker(object):
 
         return "WHERE {}".format(" AND ".join(conditions_list))
 
+    def __repr__(self):
+        return "pawprint.Tracker on table '{}' and database '{}'".format(self.table, self.db)
+
+    def __str__(self):
+        return (
+            "pawprint Tracker object.\n"
+            "db : {}\n"
+            "table : {}".format(self.db, self.table)
+        )
 
 # TODO : strip "event" requirement from aggregates
 # TODO : more comments

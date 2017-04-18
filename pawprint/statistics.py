@@ -99,7 +99,7 @@ class Statistics(object):
         session_data[["timestamp", "user_id", "duration", "total_events"]].sort_values(
             "timestamp").to_sql(stats.table, stats.db, if_exists="append")
 
-    def engagement(self, clean=False, start=None):
+    def engagement(self, clean=False, start=None, min_sessions=3):
         """Calculates the daily and monthly average users, and the stickiness as the ratio."""
 
         # Create a tracker for basic interaction
@@ -122,27 +122,77 @@ class Statistics(object):
         if not start:
             start = last_entry[0] + timedelta(days=1) if last_entry else "1900-01-01"
 
+        # If we're also calculating by imposing a minimum number of events per user
+        if min_sessions:
+            user_session_counts = self["sessions"].read().groupby(self.tracker.user_field).count()
+            active_users = user_session_counts[user_session_counts["index"] >= min_sessions].index
+            if not len(active_users):
+                min_sessions = 0
+
         # DAU : daily active users
-        stickiness = self.tracker.count("DISTINCT(user_id)", resolution="day", timestamp__gt=start)
+        stickiness = self["sessions"].count("DISTINCT(user_id)", timestamp__gt=start)
+        if not len(stickiness):  # if this has been run too recently, do nothing
+            return
         stickiness.rename(columns={"count": "dau", "datetime": "date"}, inplace=True)
-        stickiness.index = stickiness.date.dt.date
+        stickiness.index = stickiness["date"].dt.date
         stickiness.drop("date", axis=1, inplace=True)
+
+        # Calculate DAU for active users if requested
+        if min_sessions:
+            active_users = {"{}__in".format(self.tracker.user_field): list(active_users)}
+            active_dau = self["sessions"].count(
+                "DISTINCT(user_id)", timestamp__gt=start, **active_users
+            )
+            active_dau.index = active_dau["datetime"]
+            active_dau["count"]
+            stickiness["dau_active"] = active_dau["count"]
+            stickiness.dau_active = stickiness.dau_active.fillna(0).astype(int)
 
         # Weekly and monthly average users
         stickiness["wau"] = np.nan
         stickiness["mau"] = np.nan
+
+        if min_sessions:
+            stickiness["wau_active"] = np.nan
+            stickiness["mau_active"] = np.nan
+
+        # Calculate weekly and monthly average users
         for date in stickiness.index:
-            weekly = self.tracker.read("DISTINCT(user_id)",
-                                       timestamp__gt=date-timedelta(days=6),
-                                       timestamp__lte=date+timedelta(days=1))
-            monthly = self.tracker.read("DISTINCT(user_id)",
-                                        timestamp__gt=date-timedelta(days=29),
-                                        timestamp__lte=date+timedelta(days=1))
-            stickiness.loc[date, "wau"] = len(weekly)
-            stickiness.loc[date, "mau"] = len(monthly)
+            weekly = self["sessions"].read("DISTINCT(user_id)",
+                                            timestamp__gt=date-timedelta(days=6),
+                                            timestamp__lte=date+timedelta(days=1)).count()
+            monthly = self["sessions"].read("DISTINCT(user_id)",
+                                             timestamp__gt=date-timedelta(days=29),
+                                             timestamp__lte=date+timedelta(days=1)).count()
+
+            # Calculate WAU and MAU for active users only if requested
+            if min_sessions:
+                weekly_active = self["sessions"].read("DISTINCT(user_id)",
+                                                       timestamp__gt=date-timedelta(days=6),
+                                                       timestamp__lte=date+timedelta(days=1),
+                                                       **active_users).count()
+                monthly_active = self["sessions"].read("DISTINCT(user_id)",
+                                                        timestamp__gt=date-timedelta(days=29),
+                                                        timestamp__lte=date+timedelta(days=1),
+                                                        **active_users).count()
+
+                stickiness.loc[date, "wau_active"] = weekly_active.iloc[0]
+                stickiness.loc[date, "mau_active"] = monthly_active.iloc[0]
+
+            stickiness.loc[date, "wau"] = weekly.iloc[0]
+            stickiness.loc[date, "mau"] = monthly.iloc[0]
 
         # Calculate engagement as DAU / MAU
         stickiness["engagement"] = stickiness.dau / stickiness.mau
+        if min_sessions:
+            stickiness["engagement_active"] = stickiness.dau_active / stickiness.mau_active
+
+        # Active user counts should be ints
+        stickiness.wau = stickiness.wau.astype(int)
+        stickiness.mau = stickiness.mau.astype(int)
+        if min_sessions:
+            stickiness.wau_active = stickiness.wau_active.astype(int)
+            stickiness.mau_active = stickiness.mau_active.astype(int)
 
         # Write the engagement data to the database
         stickiness.sort_index().to_sql(stats.table, stats.db, if_exists="append")

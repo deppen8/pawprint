@@ -463,3 +463,10 @@ class TestPawprintTracker(object):
         # Drop tables at the end
         no_auto.drop_table()
         auto.drop_table()
+
+
+    def test_repr_and_str(self):
+        """Test the __repr__ and __str__."""
+        tracker = pawprint.Tracker(db="abc", table="123")
+        assert tracker.__repr__() == "pawprint.Tracker on table '123' and database 'abc'"
+        assert tracker.__str__() == "pawprint Tracker object.\ndb : abc\ntable : 123"
