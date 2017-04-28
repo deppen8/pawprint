@@ -67,8 +67,10 @@ class TestPawprintStatistics(object):
         tracker = Tracker(db=db, table=table)
         tracker.create_table()
 
-        # Yesterday
-        yesterday = datetime.now() - timedelta(days=1)
+        # Yesterday morning
+        today = datetime.now()
+        yesterday = datetime(today.year, today.month, today.day, 9, 0) - timedelta(days=1)
+
 
         # Write all events
         for user, delta in zip(users, timedeltas):
@@ -150,7 +152,7 @@ class TestPawprintStatistics(object):
         assert np.all(stickiness.wau == wau)
         assert np.all(stickiness.mau == mau)
         assert np.all(stickiness.engagement == engagement)
-        assert set(stickiness.columns) == {"date", "dau", "wau", "mau", "engagement"}
+        assert set(stickiness.columns) == {"timestamp", "dau", "wau", "mau", "engagement"}
 
         # Now test with a minimum number of sessions
         self.stats.engagement(clean=True, min_sessions=2)
@@ -165,14 +167,15 @@ class TestPawprintStatistics(object):
         assert np.all(stickiness.mau_active == active)
         assert np.all(stickiness.dau == dau)
         assert np.all(stickiness.engagement_active == engagement_active)
-        assert set(stickiness.columns) == {"date", "dau", "wau", "mau", "engagement", "dau_active",
-                                           "wau_active", "mau_active", "engagement_active"}
+        assert set(stickiness.columns) == {"timestamp", "dau", "wau", "mau", "engagement",
+                                           "dau_active", "wau_active", "mau_active",
+                                            "engagement_active"}
+
+        # Test that running engagements again doesn't error if there's no new data
+        self.stats.engagement()
 
         # Test with too large a minimum sessions parameter
         self.stats.engagement(clean=True, min_sessions=20)
         stickiness = self.stats["engagement"].read()
         assert len(stickiness) == 2
-        assert set(stickiness.columns) == {"date", "dau", "wau", "mau", "engagement"}
-
-        # Test that running engagements again doesn't error if there's no new data
-        self.stats.engagement()
+        assert set(stickiness.columns) == {"timestamp", "dau", "wau", "mau", "engagement"}

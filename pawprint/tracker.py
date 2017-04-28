@@ -115,6 +115,10 @@ class Tracker(object):
         conditionals_query = self._parse_conditionals(**conditionals)
 
         query = "SELECT {} FROM {} {}".format(field_query, self.table, conditionals_query)
+
+        if "DISTINCT" not in query:
+            query += " ORDER BY {}".format(self.timestamp_field)
+
         return pd.read_sql(query, self.db)
 
     def count(self, count_field="*", resolution="day", start=None, end=None, **conditionals):
