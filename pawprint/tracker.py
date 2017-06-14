@@ -26,8 +26,8 @@ class Tracker(object):
             config["schema"] = OrderedDict([
                 ("id", "SERIAL PRIMARY KEY"),
                 ("timestamp", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
-                ("user_id", "VARCHAR(32)"),
-                ("event", "VARCHAR(64)"),
+                ("user_id", "TEXT"),
+                ("event", "TEXT"),
                 ("metadata", "JSONB")
             ])
         else:  # If a schema is passed, ensure it's an ordered dict
@@ -119,6 +119,7 @@ class Tracker(object):
         if "DISTINCT" not in query:
             query += " ORDER BY {}".format(self.timestamp_field)
 
+        print(query)
         return pd.read_sql(query, self.db)
 
     def count(self, count_field="*", resolution="day", start=None, end=None, **conditionals):
@@ -287,6 +288,10 @@ class Tracker(object):
                 # Parse the field and the conditional value
                 field = self._parse_fields(key, skip_alias=True)
                 rhs = self._parse_values(value)
+
+                # In an equality when searching through json_field, compare with text and not JSON
+                if operator == "=":
+                    field = field.replace(" #> ", " #>> ")
 
                 conditions_list.append("{} {} {}".format(field, operator, rhs))
 

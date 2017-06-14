@@ -61,11 +61,11 @@ class TestPawprintTracker(object):
             "FROM INFORMATION_SCHEMA.COLUMNS "
             "WHERE table_name = '{}'".format(table),
             db).fetchall()
-        assert schema == [("id", "integer", None),
-                          ("timestamp", "timestamp without time zone", None),
-                          ("user_id", "character varying", 32),
-                          ("event", "character varying", 64),
-                          ("metadata", "jsonb", None)]
+        assert schema == [(u"id", u"integer", None),
+                          (u"timestamp", u"timestamp without time zone", None),
+                          (u"user_id", u"text", None),
+                          (u"event", u"text", None),
+                          (u"metadata", u"jsonb", None)]
 
     def test_drop_table(self):
         """Ensure that tables are deleted successfully."""
@@ -388,8 +388,10 @@ class TestPawprintTracker(object):
         tracker.write(event="whisky", metadata={"uigeadail": {"value": 123, "lagavulin": [4, 2]}})
         tracker.write(event="whisky", metadata={"uigeadail": {"value": 456, "lagavulin": [5, 0]}})
         tracker.write(event="whisky", metadata={"uigeadail": {"value": 758, "lagavulin": [7, 10]}})
+        tracker.write(event="armagnac", metadata={"age": "XO"})
+        tracker.write(event="armagnac", metadata={"age": 15})
 
-        assert len(tracker.read()) == 3
+        assert len(tracker.read()) == 5
         assert len(tracker.read(metadata__uigeadail__contains="lagavulin")) == 3
         assert len(tracker.read(metadata__uigeadail__value__gt=123)) == 2
         assert len(tracker.read(metadata__uigeadail__value__gte=123)) == 3
@@ -398,6 +400,8 @@ class TestPawprintTracker(object):
         assert len(whiskies) == 1
         assert whiskies.iloc[0]["sum"] == 1337
 
+        assert len(tracker.read(metadata__contains="age")) == 2
+        assert len(tracker.read(metadata__age="XO")) == 1
 
     def test_silent_write_errors(self):
         """When a failure occurs in event write, it should fail silently."""

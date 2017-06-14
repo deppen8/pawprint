@@ -43,7 +43,7 @@ class Statistics(object):
         # Query : what's the final time we have a session duration for ?
         query = "SELECT DISTINCT({}) FROM {}".format(self.tracker.user_field, self.tracker.table)
         if last_entry:
-            query += " WHERE {} > '{}'".format(self.tracker.timestamp_field, last_entry[0])
+            query += " WHERE {} > '{}'".format(self.tracker.timestamp_field, last_entry)
 
         # Get the list of unique users since the last data we've tracked
         try:
@@ -112,7 +112,7 @@ class Statistics(object):
         # Determine whether the stats table exists and contains data, or if we should create one
         try:  # if this passes, the table exists and may contain data
             last_entry = pd.read_sql(
-                "SELECT date FROM {} ORDER BY date DESC LIMIT 1".format(stats.table),
+                "SELECT timestamp FROM {} ORDER BY timestamp DESC LIMIT 1".format(stats.table),
                 self.tracker.db
             ).values[0]
         except ProgrammingError:  # otherwise, the table doesn't exist
@@ -120,7 +120,7 @@ class Statistics(object):
 
         # If a start_date isn't passed, start from the last known date, or from the beginning
         if not start:
-            start = last_entry[0] + timedelta(days=1) if last_entry else "1900-01-01"
+            start = last_entry + timedelta(days=1) if last_entry else "1900-01-01"
 
         # If we're also calculating by imposing a minimum number of events per user
         if min_sessions:
@@ -141,19 +141,21 @@ class Statistics(object):
         if not len(stickiness):  # if this has been run too recently, do nothing
             return
         stickiness.rename(columns={"count": "dau", "datetime": "timestamp"}, inplace=True)
-        stickiness.index = stickiness["timestamp"].dt.date
+        stickiness.index = pd.to_datetime(stickiness["timestamp"])
         stickiness.drop("timestamp", axis=1, inplace=True)
+        stickiness = stickiness.resample("D").sum().fillna(0).astype(int)
 
         # Calculate DAU for active users if requested
         if min_sessions:
             active_users_query = {"{}__in".format(self.tracker.user_field): list(active_users)}
             active_dau = self["sessions"].count(
-                "DISTINCT({})".format(self.tracker.user_field), timestamp__gt=start, **active_users_query
+                "DISTINCT({})".format(self.tracker.user_field),
+                timestamp__gt=start,
+                **active_users_query
             )
-            active_dau.index = active_dau["datetime"]
-            #active_dau["count"]
+            active_dau.index = pd.to_datetime(active_dau["datetime"])
+            active_dau = active_dau.resample("D").sum().fillna(0).astype(int)
             stickiness["dau_active"] = active_dau["count"]
-            stickiness.dau_active = stickiness.dau_active.fillna(0).astype(int)
 
         # Weekly and monthly average users
         stickiness["wau"] = np.nan
@@ -203,3 +205,6 @@ class Statistics(object):
 
         # Write the engagement data to the database
         stickiness.sort_index().to_sql(stats.table, stats.db, if_exists="append")
+
+    def compound_growth_rate(self, clean=False, resolution="month"):
+        pass
