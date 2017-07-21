@@ -179,3 +179,15 @@ class TestPawprintStatistics(object):
         stickiness = self.stats["engagement"].read()
         assert len(stickiness) == 2
         assert set(stickiness.columns) == {"timestamp", "dau", "wau", "mau", "engagement"}
+
+        # Try again with append-only
+        self.stats.engagement(clean=False)
+        stickiness = self.stats["engagement"].read()
+        assert len(stickiness.columns) == 5
+        assert len(stickiness) == 2
+
+        self.stats.engagement(clean=True, min_sessions=2)
+        stickiness = self.stats["engagement"].read()
+        print(stickiness)
+        assert len(stickiness) == 2
+        assert len(stickiness.columns) == 9

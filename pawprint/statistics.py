@@ -36,7 +36,7 @@ class Statistics(object):
             last_entry = pd.read_sql(
                 "SELECT timestamp FROM {} ORDER BY timestamp DESC LIMIT 1".format(stats.table),
                 self.tracker.db
-            ).values[0]
+            ).values[0][0]
         except ProgrammingError:  # otherwise, the table doesn't exist
             last_entry = None
 
@@ -56,7 +56,7 @@ class Statistics(object):
                                                self.tracker.timestamp_field,
                                                self.tracker.table)
         if last_entry:
-            query += " WHERE {} > '{}'".format(self.tracker.timestamp_field, last_entry[0])
+            query += " WHERE {} > '{}'".format(self.tracker.timestamp_field, last_entry)
 
         # Pull the time-series
         events = pd.read_sql(query, self.tracker.db)
