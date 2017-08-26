@@ -21,7 +21,7 @@ your own schema to exactly fit your use case.
 
 ## Quick-start
 
-See the [quick-start](https://github.com/cbredev/pawprint/blob/master/README.md).
+See the [quick-start](http://pawprint.readthedocs.io/en/latest/quickstart/), or head to the [Github repo](https://github.com/cbredev/pawprint).
 
 
 ## Installation
@@ -43,7 +43,7 @@ and so please [get in touch](quentincaudron@gmail.com) about developing new feat
 
 ## Support
 
-Feel free to open issues on the [Github repository](https://github.com/cbredev/pawprint/issues).
+Feel free to open issues on the [Github repository](https://github.com/cbredev/pawprint).
 
 
 ## License
