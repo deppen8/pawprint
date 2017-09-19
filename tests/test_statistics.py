@@ -188,6 +188,5 @@ class TestPawprintStatistics(object):
 
         self.stats.engagement(clean=True, min_sessions=2)
         stickiness = self.stats["engagement"].read()
-        print(stickiness)
         assert len(stickiness) == 2
         assert len(stickiness.columns) == 9

@@ -73,8 +73,9 @@ class Statistics(object):
             user_times = user_events[self.tracker.timestamp_field]
 
             # Index the final elements of each session
-            final_events = np.where(user_times.diff().dt.seconds / 60 > duration)[0]
-            #final_events[0] = True  # first known event always starts a session
+            time_between = user_times.diff()  # look at the time between events
+            time_between.iloc[0] = timedelta(minutes=0)  # fix NaT
+            final_events = np.where(time_between.dt.seconds / 60 > duration)[0]
 
             # Identify times where the user has finished a session
             # The zeroth "session" finished at -1; the last session finishes at the end
@@ -205,6 +206,3 @@ class Statistics(object):
 
         # Write the engagement data to the database
         stickiness.sort_index().to_sql(stats.table, stats.db, if_exists="append")
-
-    def compound_growth_rate(self, clean=False, resolution="month"):
-        pass

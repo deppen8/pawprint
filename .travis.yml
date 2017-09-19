@@ -9,7 +9,7 @@ notifications:
   email: never
 
 addons:
-  postgresql: "9.4"
+  postgresql: "9.5"
 
 services:
   - postgresql

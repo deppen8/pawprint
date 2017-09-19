@@ -84,7 +84,7 @@ class TestPawprintTracker(object):
 
         # Write a dotfile to disk
         dotfile = {
-            "db": "little_bean_toes",
+            "db": "postgres:///little_bean_toes",
             "json_field": "such_fuzzy",
         }
 
@@ -95,7 +95,7 @@ class TestPawprintTracker(object):
         tracker = pawprint.Tracker(dotfile=".pawprint", json_field="boop")
 
         # Ensure all the entries are as they should be
-        assert tracker.db == "little_bean_toes"
+        assert tracker.db == "postgres:///little_bean_toes"
         assert tracker.table == None
         assert tracker.logger == None
         assert tracker.json_field == "boop"  # field present in dotfile but overwritten in init
@@ -419,7 +419,7 @@ class TestPawprintTracker(object):
         logging.basicConfig(filename="pawprint.log", level=logging.INFO, filemode="w")
         logger = logging.getLogger("pawprint_logger")
 
-        tracker = pawprint.Tracker(db="doesnotexist", logger=logger)
+        tracker = pawprint.Tracker(db="postgres:///fail", logger=logger)
         with pytest.raises(Exception):
             tracker.write()
         with pytest.raises(Exception):
@@ -428,10 +428,10 @@ class TestPawprintTracker(object):
         with open("pawprint.log") as f:
             logs = f.readlines()
 
-        assert len(logs) == 2
+        assert len(logs) == 4
         assert logs[0].startswith("ERROR:pawprint_logger:pawprint failed to write.")
-        assert "DB: doesnotexist. Table: None. Query: INSERT INTO None () VALUES ();" in logs[0]
-        assert "Query: INSERT INTO None (event) VALUES ('going_to_fail')" in logs[1]
+        assert "DB: postgres:///fail. Table: None. Query: INSERT INTO None () VALUES ();" in logs[0]
+        assert "Query: INSERT INTO None (event) VALUES ('going_to_fail')" in logs[2]
 
     def test_auto_timestamp(self):
         """Ensure that timestamps are autopopulated correctly if not passed."""
@@ -471,6 +471,8 @@ class TestPawprintTracker(object):
 
     def test_repr_and_str(self):
         """Test the __repr__ and __str__."""
-        tracker = pawprint.Tracker(db="abc", table="123")
-        assert tracker.__repr__() == "pawprint.Tracker on table '123' and database 'abc'"
-        assert tracker.__str__() == "pawprint Tracker object.\ndb : abc\ntable : 123"
+        tracker = pawprint.Tracker(db=db, table=table)
+        expected_repr = "pawprint.Tracker on table '{}' and database '{}'".format(table, db)
+        expected_str = "pawprint Tracker object.\ndb : {}\ntable : {}".format(db, table)
+        assert tracker.__repr__() == expected_repr
+        assert tracker.__str__() == expected_str

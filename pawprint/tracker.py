@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 import pandas as pd
+from sqlalchemy import create_engine
 from sqlalchemy.exc import ProgrammingError, OperationalError
 
 
@@ -44,6 +45,10 @@ class Tracker(object):
         self.auto_timestamp = config.get("auto_timestamp", False)
         self.schema = config["schema"]
 
+        # Create the connection engine
+        if self.db is not None:
+            self.engine = create_engine(self.db)
+
     def create_table(self):
         """
         Create a database with the correct schema.
@@ -55,7 +60,7 @@ class Tracker(object):
         query = "CREATE TABLE {} ({})".format(self.table, fields)
 
         # Execute the query to create the table.
-        pd.io.sql.execute(query, self.db)
+        pd.io.sql.execute(query, self.engine)
 
     def drop_table(self):
         """Delete an existing table."""
@@ -87,7 +92,7 @@ class Tracker(object):
 
         # Write to the database
         try:
-            pd.io.sql.execute(query, self.db)
+            pd.io.sql.execute(query, self.engine)
 
         # If the write fails, raise the exception
         except Exception as exception:
@@ -97,7 +102,7 @@ class Tracker(object):
                 if self.logger:
                     self.logger.error(
                         "pawprint failed to write. DB: {}. Table: {}. Query: {}. Exception: {} ({})"
-                        .format(self.db, self.table, query, exception, exception.args)
+                        .format(self.engine.url, self.table, query, exception, exception.args)
                     )
 
                 raise
@@ -135,7 +140,7 @@ class Tracker(object):
 
     def query(self, query):  # pragma: no cover
         """User-defined SQL query."""
-        return pd.io.sql.execute(query, self.db)
+        return pd.io.sql.execute(query, self.engine)
 
     def _aggregate(self, agg_operation, resolution, start, end, agg_field, **conditionals):
         """
