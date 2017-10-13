@@ -429,8 +429,8 @@ class TestPawprintTracker(object):
             logs = f.readlines()
 
         assert len(logs) == 4
-        assert logs[0].startswith("ERROR:pawprint_logger:pawprint failed to write.")
-        assert "DB: postgres:///fail. Table: None. Query: INSERT INTO None () VALUES ();" in logs[0]
+        assert logs[0].startswith("WARNING:pawprint_logger:pawprint failed to write.")
+        assert "Table: None. Query: INSERT INTO None () VALUES ();" in logs[0]
         assert "Query: INSERT INTO None (event) VALUES ('going_to_fail')" in logs[2]
 
     def test_auto_timestamp(self):
@@ -468,7 +468,6 @@ class TestPawprintTracker(object):
         no_auto.drop_table()
         auto.drop_table()
 
-
     def test_repr_and_str(self):
         """Test the __repr__ and __str__."""
         tracker = pawprint.Tracker(db=db, table=table)
@@ -476,3 +475,42 @@ class TestPawprintTracker(object):
         expected_str = "pawprint Tracker object.\ndb : {}\ntable : {}".format(db, table)
         assert tracker.__repr__() == expected_repr
         assert tracker.__str__() == expected_str
+
+    @drop_table_after
+    def test_malicious_strings(self):
+        tracker = pawprint.Tracker(db=db, table=table)
+        tracker.create_table()
+
+        tracker.write(event="armageddon", metadata={
+            "shady business": {
+                "with": "the following string",
+                "of sql": "50');INSERT INTO {table} (event, user_id) VALUES "
+                          "('you got pwnd', '50".format(table=table)
+            }
+        })
+        assert len(tracker.read()) == 1
+
+        tracker.write(event="armageddon", metadata={
+            "more shady business": {
+                "my shady sql": "' OR '1'='1;DROP TABLE {table};".format(table=table)
+            }
+        })
+        assert len(tracker.read()) == 2
+
+        tracker.write(event="' OR '1'='1;", metadata={
+            "foo": "x'); DROP TABLE {table}; --".format(table=table)
+        })
+        assert len(tracker.read()) == 3
+
+    @drop_table_after
+    def test_escaping_from_quotes(self):
+        tracker = pawprint.Tracker(db=db, table=table)
+        tracker.create_table()
+        tracker.write(event="known crummy string", metadata={
+            'foo': {
+                "toState": "#/app/dealnotes/2345/FORPETE'S_SAKE,_LLC_Tenant_Rep_Lease_2",
+                "fromState": "#/app/dealdetails/2345",
+                "platform": "iOS App"
+            }
+        })
+        assert len(tracker.read()) == 1
