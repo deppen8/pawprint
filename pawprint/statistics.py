@@ -43,11 +43,12 @@ class Statistics(object):
         # Query : what's the final time we have a session duration for ?
         query = "SELECT DISTINCT({}) FROM {}".format(self.tracker.user_field, self.tracker.table)
         if last_entry:
-            query += " WHERE {} > '{}'".format(self.tracker.timestamp_field, last_entry)
+            query += " WHERE {} > %(last_entry)s".format(self.tracker.timestamp_field)
+        params = {'last_entry': str(last_entry)}
 
         # Get the list of unique users since the last data we've tracked
         try:
-            users = pd.read_sql(query, self.tracker.db)[self.tracker.user_field].values
+            users = pd.read_sql(query, self.tracker.db, params=params)[self.tracker.user_field].values
         except IndexError:  # no users since the last recorded session
             return
 
@@ -56,10 +57,10 @@ class Statistics(object):
                                                self.tracker.timestamp_field,
                                                self.tracker.table)
         if last_entry:
-            query += " WHERE {} > '{}'".format(self.tracker.timestamp_field, last_entry)
+            query += " WHERE {} > %(last_entry)s".format(self.tracker.timestamp_field)
 
         # Pull the time-series
-        events = pd.read_sql(query, self.tracker.db)
+        events = pd.read_sql(query, self.tracker.db, params=params)
 
         # Session durations DataFrame
         session_data = pd.DataFrame()

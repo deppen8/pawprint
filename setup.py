@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="pawprint",
-    version="1.0.1",
+    version="1.1.1",
     description="A flexible event tracker for rapid analysis.",
     url="http://github.com/cbredev/pawprint",
     author="Quentin CAUDRON",

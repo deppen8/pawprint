@@ -82,17 +82,26 @@ class Tracker(object):
         # Parse the field headers
         fields = ", ".join(data.keys())
 
-        # Parse the values; these need to be encased in quotes if they're strings
-        # but not if they're numerical values
-        values = self._parse_values(*data.values())
+        values = data.values()
+        new_values = []
+        for value in values:
+            if isinstance(value, dict):
+                new_values.append(json.dumps(value))
+            else:
+                new_values.append(str(value))
+        values = new_values
 
         # Build the PostgreSQL query
-        query = "INSERT INTO {table} ({fields}) VALUES ({values});".format(
-                table=self.table, fields=fields, values=values)
+        placeholders = "{}".format(", ".join(["%s"]*len(values)))
+        query = "INSERT INTO {table} ({fields}) VALUES ({placeholders});".format(
+            table=self.table,
+            fields=fields,
+            placeholders=placeholders
+        )
 
         # Write to the database
         try:
-            pd.io.sql.execute(query, self.engine)
+            self.engine.execute(query, values)
 
         # If the write fails, raise the exception
         except Exception as exception:
@@ -100,9 +109,11 @@ class Tracker(object):
 
                 # If we have a logger, log the error
                 if self.logger:
-                    self.logger.error(
-                        "pawprint failed to write. DB: {}. Table: {}. Query: {}. Exception: {} ({})"
-                        .format(self.engine.url, self.table, query, exception, exception.args)
+                    # add vars to the query string
+                    query = query.replace('%s', "'{}'").format(*values)
+                    self.logger.warning(
+                        "pawprint failed to write. Table: {}. Query: {}. Exception: {} ({})"
+                        .format(self.table, query, exception, exception.args)
                     )
 
                 raise
@@ -165,23 +176,20 @@ class Tracker(object):
         conditionals = self._parse_conditionals(**conditionals).replace("WHERE", "AND")
 
         # Construct the query
-        query = ("SELECT date_trunc('{resolution}', {timestamp}) AS datetime, "
+        query = ("SELECT date_trunc(%(resolution)s, {timestamp}) AS datetime, "
                  "{aggregate} FROM {table} "
-                 "WHERE {timestamp} >= '{start}' "
-                 "AND {timestamp} <= '{end}' "
+                 "WHERE {timestamp} >= %(start)s "
+                 "AND {timestamp} <= %(end)s "
                  "{conditionals} "
-                 "GROUP BY date_trunc('{resolution}', {timestamp}) "
-                 "ORDER BY date_trunc('{resolution}', {timestamp})".format(
-                     resolution=resolution,
+                 "GROUP BY date_trunc(%(resolution)s, {timestamp}) "
+                 "ORDER BY date_trunc(%(resolution)s, {timestamp})".format(
                      timestamp=self.timestamp_field,
                      aggregate=agg_query,
                      table=self.table,
-                     start=start,
-                     end=end,
                      conditionals=conditionals,
                  ))
-
-        return pd.read_sql(query, self.db)
+        params = {'resolution': resolution, 'start': start, 'end': end}
+        return pd.read_sql(query, self.db, params=params)
 
     def _parse_fields(self, *fields, **kwargs):
         """
@@ -219,7 +227,6 @@ class Tracker(object):
                 if not kwargs.get("skip_alias"):
                     jsonfield += " AS json_field"
                 parsed.append(jsonfield)
-
 
         return ", ".join(parsed)
 
