@@ -35,7 +35,7 @@ class Statistics(object):
         try:  # if this passes, the table exists and may contain data
             last_entry = pd.read_sql(
                 "SELECT timestamp FROM {} ORDER BY timestamp DESC LIMIT 1".format(stats.table),
-                self.tracker.db
+                self.tracker.db,
             ).values[0][0]
         except ProgrammingError:  # otherwise, the table doesn't exist
             last_entry = None
@@ -44,18 +44,20 @@ class Statistics(object):
         query = "SELECT DISTINCT({}) FROM {}".format(self.tracker.user_field, self.tracker.table)
         if last_entry:
             query += " WHERE {} > %(last_entry)s".format(self.tracker.timestamp_field)
-        params = {'last_entry': str(last_entry)}
+        params = {"last_entry": str(last_entry)}
 
         # Get the list of unique users since the last data we've tracked
         try:
-            users = pd.read_sql(query, self.tracker.db, params=params)[self.tracker.user_field].values
+            users = pd.read_sql(query, self.tracker.db, params=params)[
+                self.tracker.user_field
+            ].values
         except IndexError:  # no users since the last recorded session
             return
 
         # Query : the timestamp and user for all events since the last recorded session start
-        query = "SELECT {}, {} FROM {}".format(self.tracker.user_field,
-                                               self.tracker.timestamp_field,
-                                               self.tracker.table)
+        query = "SELECT {}, {} FROM {}".format(
+            self.tracker.user_field, self.tracker.timestamp_field, self.tracker.table
+        )
         if last_entry:
             query += " WHERE {} > %(last_entry)s".format(self.tracker.timestamp_field)
 
@@ -70,7 +72,8 @@ class Statistics(object):
 
             # Get the user's time series
             user_events = events[events[self.tracker.user_field] == user].sort_values(
-                self.tracker.timestamp_field)
+                self.tracker.timestamp_field
+            )
             user_times = user_events[self.tracker.timestamp_field]
 
             # Index the final elements of each session
@@ -86,20 +89,23 @@ class Statistics(object):
             # Calculate session durations
             user_durations = []
             for i, j in zip(breaks[:-1], breaks[1:]):
-                user_durations.append((user_times.iloc[j-1] - user_times.iloc[i]).seconds / 60)
+                user_durations.append((user_times.iloc[j - 1] - user_times.iloc[i]).seconds / 60)
 
             # Write session durations to the DataFrame
-            user_session_data = pd.DataFrame({
-                "timestamp": user_times.iloc[breaks[:-1]].values,
-                "user_id": [user] * len(user_durations),
-                "duration": user_durations,
-                "total_events": np.diff(breaks)
-            })
+            user_session_data = pd.DataFrame(
+                {
+                    "timestamp": user_times.iloc[breaks[:-1]].values,
+                    "user_id": [user] * len(user_durations),
+                    "duration": user_durations,
+                    "total_events": np.diff(breaks),
+                }
+            )
             session_data = session_data.append(user_session_data, ignore_index=True)
 
         # Write the session durations to the database
         session_data[["timestamp", "user_id", "duration", "total_events"]].sort_values(
-            "timestamp").to_sql(stats.table, stats.db, if_exists="append", index=False)
+            "timestamp"
+        ).to_sql(stats.table, stats.db, if_exists="append", index=False)
 
     def engagement(self, clean=False, start=None, min_sessions=3):
         """Calculates the daily and monthly average users, and the stickiness as the ratio."""
@@ -115,7 +121,7 @@ class Statistics(object):
         try:  # if this passes, the table exists and may contain data
             last_entry = pd.read_sql(
                 "SELECT timestamp FROM {} ORDER BY timestamp DESC LIMIT 1".format(stats.table),
-                self.tracker.db
+                self.tracker.db,
             ).values[0]
         except ProgrammingError:  # otherwise, the table doesn't exist
             last_entry = None
@@ -138,8 +144,9 @@ class Statistics(object):
                 min_sessions = 0
 
         # DAU : daily active users
-        stickiness = self["sessions"].count("DISTINCT({})".format(self.tracker.user_field),
-                                            timestamp__gt=start)
+        stickiness = self["sessions"].count(
+            "DISTINCT({})".format(self.tracker.user_field), timestamp__gt=start
+        )
         if not len(stickiness):  # if this has been run too recently, do nothing
             return
         stickiness.rename(columns={"count": "dau", "datetime": "timestamp"}, inplace=True)
@@ -169,23 +176,47 @@ class Statistics(object):
 
         # Calculate weekly and monthly average users
         for date in stickiness.index:
-            weekly = self["sessions"].read("DISTINCT({})".format(self.tracker.user_field),
-                                           timestamp__gt=date-timedelta(days=6),
-                                           timestamp__lte=date+timedelta(days=1)).count()
-            monthly = self["sessions"].read("DISTINCT({})".format(self.tracker.user_field),
-                                            timestamp__gt=date-timedelta(days=29),
-                                            timestamp__lte=date+timedelta(days=1)).count()
+            weekly = (
+                self["sessions"]
+                .read(
+                    "DISTINCT({})".format(self.tracker.user_field),
+                    timestamp__gt=date - timedelta(days=6),
+                    timestamp__lte=date + timedelta(days=1),
+                )
+                .count()
+            )
+            monthly = (
+                self["sessions"]
+                .read(
+                    "DISTINCT({})".format(self.tracker.user_field),
+                    timestamp__gt=date - timedelta(days=29),
+                    timestamp__lte=date + timedelta(days=1),
+                )
+                .count()
+            )
 
             # Calculate WAU and MAU for active users only if requested
             if min_sessions:
-                weekly_active = self["sessions"].read("DISTINCT({})".format(self.tracker.user_field),
-                                                      timestamp__gt=date-timedelta(days=6),
-                                                      timestamp__lte=date+timedelta(days=1),
-                                                      **active_users_query).count()
-                monthly_active = self["sessions"].read("DISTINCT({})".format(self.tracker.user_field),
-                                                       timestamp__gt=date-timedelta(days=29),
-                                                       timestamp__lte=date+timedelta(days=1),
-                                                       **active_users_query).count()
+                weekly_active = (
+                    self["sessions"]
+                    .read(
+                        "DISTINCT({})".format(self.tracker.user_field),
+                        timestamp__gt=date - timedelta(days=6),
+                        timestamp__lte=date + timedelta(days=1),
+                        **active_users_query
+                    )
+                    .count()
+                )
+                monthly_active = (
+                    self["sessions"]
+                    .read(
+                        "DISTINCT({})".format(self.tracker.user_field),
+                        timestamp__gt=date - timedelta(days=29),
+                        timestamp__lte=date + timedelta(days=1),
+                        **active_users_query
+                    )
+                    .count()
+                )
 
                 stickiness.loc[date, "wau_active"] = weekly_active.iloc[0]
                 stickiness.loc[date, "mau_active"] = monthly_active.iloc[0]

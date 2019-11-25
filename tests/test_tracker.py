@@ -17,7 +17,6 @@ table = "pawprint_test_table"
 
 
 class TestPawprintTracker(object):
-
     @classmethod
     def setup_class(cls):
         """If the test table exists because tests previously failed, drop it."""
@@ -34,9 +33,11 @@ class TestPawprintTracker(object):
 
     def drop_table_after(f):
         """Drop the table at the end of the test, so we start with a clean table."""
+
         def wrapper(self):
             f(self)
             pd.io.sql.execute("DROP TABLE {}".format(table), db)
+
         return wrapper
 
     @drop_table_after
@@ -60,12 +61,15 @@ class TestPawprintTracker(object):
             "SELECT column_name, data_type, character_maximum_length "
             "FROM INFORMATION_SCHEMA.COLUMNS "
             "WHERE table_name = '{}'".format(table),
-            db).fetchall()
-        assert schema == [(u"id", u"integer", None),
-                          (u"timestamp", u"timestamp without time zone", None),
-                          (u"user_id", u"text", None),
-                          (u"event", u"text", None),
-                          (u"metadata", u"jsonb", None)]
+            db,
+        ).fetchall()
+        assert schema == [
+            (u"id", u"integer", None),
+            (u"timestamp", u"timestamp without time zone", None),
+            (u"user_id", u"text", None),
+            (u"event", u"text", None),
+            (u"metadata", u"jsonb", None),
+        ]
 
     def test_drop_table(self):
         """Ensure that tables are deleted successfully."""
@@ -106,10 +110,7 @@ class TestPawprintTracker(object):
     def test_create_table_with_other_options(self):
         """Ensure the table is correctly created with an alternative schema."""
 
-        schema = OrderedDict([
-            ("pk", "SERIAL PRIMARY KEY"),
-            ("infofield", "TEXT")
-        ])
+        schema = OrderedDict([("pk", "SERIAL PRIMARY KEY"), ("infofield", "TEXT")])
         tracker = pawprint.Tracker(db=db, table=table, schema=schema)
         tracker.create_table()
 
@@ -118,10 +119,10 @@ class TestPawprintTracker(object):
             "SELECT column_name, data_type, character_maximum_length "
             "FROM INFORMATION_SCHEMA.COLUMNS "
             "WHERE table_name = '{}'".format(table),
-            db).fetchall()
+            db,
+        ).fetchall()
 
-        assert schema == [("pk", "integer", None),
-                          ("infofield", "text", None)]
+        assert schema == [("pk", "integer", None), ("infofield", "text", None)]
 
     @drop_table_after
     def test_write(self):
@@ -158,11 +159,15 @@ class TestPawprintTracker(object):
         tracker.write(user_id="Pawprint", event="Testing !")
         tracker.write(user_id="Pawprint")
         tracker.write(event="No user")
-        tracker.write(user_id="import this", event="very zen",
-                    metadata={"better": "forgiveness",
-                              "worse": "permission",
-                              "ordered": ["simple", "complex", "complicated"]
-                    })
+        tracker.write(
+            user_id="import this",
+            event="very zen",
+            metadata={
+                "better": "forgiveness",
+                "worse": "permission",
+                "ordered": ["simple", "complex", "complicated"],
+            },
+        )
 
         all_data = tracker.read()
         pawprint_events = tracker.read(user_id="Pawprint")
@@ -214,12 +219,15 @@ class TestPawprintTracker(object):
         logins_daily = tracker.count(event="logged_in")
         logins_weekly = tracker.count(event="logged_in", resolution="week")
         logins_monthly = tracker.count(event="logged_in", resolution="month")
-        logins_weekly_left_range = tracker.count(event="logged_in", resolution="week",
-                                                 start=datetime(2016, 2, 1))
-        logins_weekly_right_range = tracker.count(event="logged_in", resolution="week",
-                                                  end=datetime(2016, 2, 1))
-        logins_daily_full_range = tracker.count(event="logged_in", start=datetime(2016, 1, 15),
-                                                end=datetime(2016, 2, 15))
+        logins_weekly_left_range = tracker.count(
+            event="logged_in", resolution="week", start=datetime(2016, 2, 1)
+        )
+        logins_weekly_right_range = tracker.count(
+            event="logged_in", resolution="week", end=datetime(2016, 2, 1)
+        )
+        logins_daily_full_range = tracker.count(
+            event="logged_in", start=datetime(2016, 1, 15), end=datetime(2016, 2, 15)
+        )
 
         # Hourly
         assert len(logins_hourly) == 8
@@ -246,7 +254,7 @@ class TestPawprintTracker(object):
         tracker = pawprint.Tracker(db=db, table=table)
         tracker.create_table()
 
-        metadata = str("{\"val\": 1}").replace("'", '"')
+        metadata = str('{"val": 1}').replace("'", '"')
 
         # Add a bunch of events
         query = (
@@ -292,7 +300,7 @@ class TestPawprintTracker(object):
         assert tracker._parse_fields(*args) == "*"
 
         # SELECT event FROM table
-        args = ("event", )
+        args = ("event",)
         assert tracker._parse_fields(*args) == "event"
 
         # SELECT user_id, timestamp FROM table
@@ -300,7 +308,7 @@ class TestPawprintTracker(object):
         assert tracker._parse_fields(*args) == "user_id, timestamp"
 
         # SELECT metadata #>> '{a, b}' FROM table
-        args = ("metadata__a__b", )
+        args = ("metadata__a__b",)
         assert tracker._parse_fields(*args) == "metadata #> '{a, b}' AS json_field"
 
     def test_parse_values(self):
@@ -309,7 +317,7 @@ class TestPawprintTracker(object):
         tracker = pawprint.Tracker(db=db, table=table)
 
         # INSERT INTO table (event) VALUES ('logged_in')
-        args = ("logged_in", )
+        args = ("logged_in",)
         assert tracker._parse_values(*args) == "'logged_in'"
 
         # INSERT INTO table (event, user_id) VALUES ('logged_in', 'hannah')
@@ -333,7 +341,7 @@ class TestPawprintTracker(object):
         kwargs = {"event": "logged_in", "user_id": "Quentin"}
         assert tracker._parse_conditionals(**kwargs) in (
             "WHERE event = 'logged_in' AND user_id = 'Quentin'",
-            "WHERE user_id = 'Quentin' AND event = 'logged_in'"
+            "WHERE user_id = 'Quentin' AND event = 'logged_in'",
         )
 
         # SELECT * FROM table WHERE event IN ('logged_in', 'logged_out')
@@ -352,7 +360,10 @@ class TestPawprintTracker(object):
         medium = {"montecarlo": {"prior": "likelihood"}}
         difficult = {
             "deepnet": ["mlp", "cnn", "rnn"],
-            "ensembles": {"random": "forest", "always": {"cross_validate": ["kfold", "stratified"]}}
+            "ensembles": {
+                "random": "forest",
+                "always": {"cross_validate": ["kfold", "stratified"]},
+            },
         }
 
         tracker.write(event="maths", metadata=simple)
@@ -437,10 +448,7 @@ class TestPawprintTracker(object):
         """Ensure that timestamps are autopopulated correctly if not passed."""
 
         # Define a schema where the timestamp doesn't automatically populate through the database
-        schema = {
-            "event": "TEXT",
-            "timestamp": "TIMESTAMP"
-        }
+        schema = {"event": "TEXT", "timestamp": "TIMESTAMP"}
 
         # Put together two trackers, one that autopopulates the timestamp
         no_auto = pawprint.Tracker(db=db, table="no_auto", auto_timestamp=False, schema=schema)
@@ -481,36 +489,46 @@ class TestPawprintTracker(object):
         tracker = pawprint.Tracker(db=db, table=table)
         tracker.create_table()
 
-        tracker.write(event="armageddon", metadata={
-            "shady business": {
-                "with": "the following string",
-                "of sql": "50');INSERT INTO {table} (event, user_id) VALUES "
-                          "('you got pwnd', '50".format(table=table)
-            }
-        })
+        tracker.write(
+            event="armageddon",
+            metadata={
+                "shady business": {
+                    "with": "the following string",
+                    "of sql": "50');INSERT INTO {table} (event, user_id) VALUES "
+                    "('you got pwnd', '50".format(table=table),
+                }
+            },
+        )
         assert len(tracker.read()) == 1
 
-        tracker.write(event="armageddon", metadata={
-            "more shady business": {
-                "my shady sql": "' OR '1'='1;DROP TABLE {table};".format(table=table)
-            }
-        })
+        tracker.write(
+            event="armageddon",
+            metadata={
+                "more shady business": {
+                    "my shady sql": "' OR '1'='1;DROP TABLE {table};".format(table=table)
+                }
+            },
+        )
         assert len(tracker.read()) == 2
 
-        tracker.write(event="' OR '1'='1;", metadata={
-            "foo": "x'); DROP TABLE {table}; --".format(table=table)
-        })
+        tracker.write(
+            event="' OR '1'='1;",
+            metadata={"foo": "x'); DROP TABLE {table}; --".format(table=table)},
+        )
         assert len(tracker.read()) == 3
 
     @drop_table_after
     def test_escaping_from_quotes(self):
         tracker = pawprint.Tracker(db=db, table=table)
         tracker.create_table()
-        tracker.write(event="known crummy string", metadata={
-            'foo': {
-                "toState": "#/app/dealnotes/2345/FORPETE'S_SAKE,_LLC_Tenant_Rep_Lease_2",
-                "fromState": "#/app/dealdetails/2345",
-                "platform": "iOS App"
-            }
-        })
+        tracker.write(
+            event="known crummy string",
+            metadata={
+                "foo": {
+                    "toState": "#/app/dealnotes/2345/FORPETE'S_SAKE,_LLC_Tenant_Rep_Lease_2",
+                    "fromState": "#/app/dealdetails/2345",
+                    "platform": "iOS App",
+                }
+            },
+        )
         assert len(tracker.read()) == 1

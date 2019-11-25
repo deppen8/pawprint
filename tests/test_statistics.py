@@ -11,7 +11,6 @@ table = "pawprint_test_statistics_table"
 
 
 class TestPawprintStatistics(object):
-
     @classmethod
     def setup_class(cls):
         """If the test table exists because tests previously failed, drop it."""
@@ -21,7 +20,6 @@ class TestPawprintStatistics(object):
             pd.io.sql.execute("DROP TABLE {}".format(table), db)
         except:
             pass
-
 
         # List of users who performed events
         users = [
@@ -40,28 +38,11 @@ class TestPawprintStatistics(object):
             "Frodo",
             "Frodo",
             "Frodo",
-            "Frodo"
+            "Frodo",
         ]
 
         # List of times ( minutes ) between any event and the first events
-        timedeltas = [
-            0,
-            1,
-            2,
-            3,
-            4,
-            5,
-            100,
-            110,
-            120,
-            130,
-            140,
-            1000,
-            1001,
-            1002,
-            1003,
-            1004
-        ]
+        timedeltas = [0, 1, 2, 3, 4, 5, 100, 110, 120, 130, 140, 1000, 1001, 1002, 1003, 1004]
 
         # Create a tracker
         tracker = Tracker(db=db, table=table)
@@ -70,7 +51,6 @@ class TestPawprintStatistics(object):
         # Yesterday morning
         today = datetime.now()
         yesterday = datetime(today.year, today.month, today.day, 9, 0) - timedelta(days=1)
-
 
         # Write all events
         for user, delta in zip(users, timedeltas):
@@ -101,6 +81,7 @@ class TestPawprintStatistics(object):
                     pass
 
             return wrapper
+
         return decorator
 
     @drop_table_before_and_after("sessions")
@@ -167,9 +148,17 @@ class TestPawprintStatistics(object):
         assert np.all(stickiness.mau_active == active)
         assert np.all(stickiness.dau == dau)
         assert np.all(stickiness.engagement_active == engagement_active)
-        assert set(stickiness.columns) == {"timestamp", "dau", "wau", "mau", "engagement",
-                                           "dau_active", "wau_active", "mau_active",
-                                            "engagement_active"}
+        assert set(stickiness.columns) == {
+            "timestamp",
+            "dau",
+            "wau",
+            "mau",
+            "engagement",
+            "dau_active",
+            "wau_active",
+            "mau_active",
+            "engagement_active",
+        }
 
         # Test that running engagements again doesn't error if there's no new data
         self.stats.engagement()

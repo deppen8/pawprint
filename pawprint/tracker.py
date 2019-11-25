@@ -24,13 +24,15 @@ class Tracker(object):
 
         # Set a default schema if none is passed
         if "schema" not in config:
-            config["schema"] = OrderedDict([
-                ("id", "SERIAL PRIMARY KEY"),
-                ("timestamp", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
-                ("user_id", "TEXT"),
-                ("event", "TEXT"),
-                ("metadata", "JSONB")
-            ])
+            config["schema"] = OrderedDict(
+                [
+                    ("id", "SERIAL PRIMARY KEY"),
+                    ("timestamp", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+                    ("user_id", "TEXT"),
+                    ("event", "TEXT"),
+                    ("metadata", "JSONB"),
+                ]
+            )
         else:  # If a schema is passed, ensure it's an ordered dict
             if not isinstance(config["schema"], OrderedDict) and isinstance(config["schema"], dict):
                 config["schema"] = OrderedDict(config["schema"])
@@ -55,8 +57,9 @@ class Tracker(object):
         """
 
         # Build a query from the schema
-        fields = ", ".join("{} {}".format(field_name, field_type)
-                           for field_name, field_type in self.schema.items())
+        fields = ", ".join(
+            "{} {}".format(field_name, field_type) for field_name, field_type in self.schema.items()
+        )
         query = "CREATE TABLE {} ({})".format(self.table, fields)
 
         # Execute the query to create the table.
@@ -92,11 +95,9 @@ class Tracker(object):
         values = new_values
 
         # Build the PostgreSQL query
-        placeholders = "{}".format(", ".join(["%s"]*len(values)))
+        placeholders = "{}".format(", ".join(["%s"] * len(values)))
         query = "INSERT INTO {table} ({fields}) VALUES ({placeholders});".format(
-            table=self.table,
-            fields=fields,
-            placeholders=placeholders
+            table=self.table, fields=fields, placeholders=placeholders
         )
 
         # Write to the database
@@ -110,10 +111,11 @@ class Tracker(object):
                 # If we have a logger, log the error
                 if self.logger:
                     # add vars to the query string
-                    query = query.replace('%s', "'{}'").format(*values)
+                    query = query.replace("%s", "'{}'").format(*values)
                     self.logger.warning(
-                        "pawprint failed to write. Table: {}. Query: {}. Exception: {} ({})"
-                        .format(self.table, query, exception, exception.args)
+                        "pawprint failed to write. Table: {}. Query: {}. Exception: {} ({})".format(
+                            self.table, query, exception, exception.args
+                        )
                     )
 
                 raise
@@ -169,26 +171,28 @@ class Tracker(object):
         else:
             agg_query = "{aggregate}(({field})::float)".format(
                 aggregate=agg_operation,
-                field=self._parse_fields(agg_field, skip_alias=True, json_aggregate=True)
+                field=self._parse_fields(agg_field, skip_alias=True, json_aggregate=True),
             )
 
         # Parse conditionals; replace WHERE with AND
         conditionals = self._parse_conditionals(**conditionals).replace("WHERE", "AND")
 
         # Construct the query
-        query = ("SELECT date_trunc(%(resolution)s, {timestamp}) AS datetime, "
-                 "{aggregate} FROM {table} "
-                 "WHERE {timestamp} >= %(start)s "
-                 "AND {timestamp} <= %(end)s "
-                 "{conditionals} "
-                 "GROUP BY date_trunc(%(resolution)s, {timestamp}) "
-                 "ORDER BY date_trunc(%(resolution)s, {timestamp})".format(
-                     timestamp=self.timestamp_field,
-                     aggregate=agg_query,
-                     table=self.table,
-                     conditionals=conditionals,
-                 ))
-        params = {'resolution': resolution, 'start': start, 'end': end}
+        query = (
+            "SELECT date_trunc(%(resolution)s, {timestamp}) AS datetime, "
+            "{aggregate} FROM {table} "
+            "WHERE {timestamp} >= %(start)s "
+            "AND {timestamp} <= %(end)s "
+            "{conditionals} "
+            "GROUP BY date_trunc(%(resolution)s, {timestamp}) "
+            "ORDER BY date_trunc(%(resolution)s, {timestamp})".format(
+                timestamp=self.timestamp_field,
+                aggregate=agg_query,
+                table=self.table,
+                conditionals=conditionals,
+            )
+        )
+        params = {"resolution": resolution, "start": start, "end": end}
         return pd.read_sql(query, self.db, params=params)
 
     def _parse_fields(self, *fields, **kwargs):
@@ -220,8 +224,7 @@ class Tracker(object):
             else:
                 operator = "#>>" if kwargs.get("json_aggregate") else "#>"
                 jsonfield = self.json_field + " {operator} '{{{subfields}}}'".format(
-                    operator=operator,
-                    subfields=", ".join(field.split("__")[1:])
+                    operator=operator, subfields=", ".join(field.split("__")[1:])
                 )
 
                 if not kwargs.get("skip_alias"):
@@ -271,14 +274,7 @@ class Tracker(object):
         #   metadata__value__contains
         #   user_id__gt
 
-        modifiers = {
-            "gt": ">",
-            "lt": "<",
-            "gte": ">=",
-            "lte": "<=",
-            "contains": "?",
-            "in": "IN"
-        }
+        modifiers = {"gt": ">", "lt": "<", "gte": ">=", "lte": "<=", "contains": "?", "in": "IN"}
 
         if not conditionals:
             return ""
@@ -312,11 +308,8 @@ class Tracker(object):
         return "pawprint.Tracker on table '{}' and database '{}'".format(self.table, self.db)
 
     def __str__(self):
-        return (
-            "pawprint Tracker object.\n"
-            "db : {}\n"
-            "table : {}".format(self.db, self.table)
-        )
+        return "pawprint Tracker object.\n" "db : {}\n" "table : {}".format(self.db, self.table)
+
 
 # TODO : strip "event" requirement from aggregates
 # TODO : more comments
