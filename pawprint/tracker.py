@@ -1,10 +1,10 @@
 from collections import OrderedDict
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from warnings import warn
 import pandas as pd
 from sqlalchemy import create_engine
-from sqlalchemy.exc import ProgrammingError, OperationalError
+from sqlalchemy.exc import ProgrammingError
 
 
 class Tracker(object):
