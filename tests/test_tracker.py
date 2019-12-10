@@ -85,7 +85,9 @@ def test_instantiate_tracker_from_dot_file(drop_tracker_test_table):
     os.remove(".pawprint")
 
 
-def test_create_table_with_other_options(drop_tracker_test_table, db_string, tracker_test_table_name):
+def test_create_table_with_other_options(
+    drop_tracker_test_table, db_string, tracker_test_table_name
+):
     """Ensure the table is correctly created with an alternative schema."""
 
     schema = OrderedDict([("pk", "SERIAL PRIMARY KEY"), ("infofield", "TEXT")])
@@ -345,7 +347,7 @@ def test_accessing_json_fields(pawprint_default_tracker_db_with_table):
     medium = {"montecarlo": {"prior": "likelihood"}}
     difficult = {
         "deepnet": ["mlp", "cnn", "rnn"],
-        "ensembles": {"random": "forest", "always": {"cross_validate": ["kfold", "stratified"]},},
+        "ensembles": {"random": "forest", "always": {"cross_validate": ["kfold", "stratified"]}},
     }
 
     tracker.write(event="maths", metadata=simple)
@@ -425,6 +427,8 @@ def test_nonsilent_write_errors(error_logger):
     assert logs[0].startswith("pawprint failed to write.")
     assert "Table: None. Query: INSERT INTO None () VALUES ();" in logs[0]
     assert "Query: INSERT INTO None (event) VALUES ('going_to_fail')" in logs[3]
+
+    os.remove("pawprint.log")
 
 
 def test_auto_timestamp(db_string):
