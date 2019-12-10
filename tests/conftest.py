@@ -11,7 +11,7 @@ import logging
 
 @pytest.fixture(scope="session")
 def db_string():
-    return "postgresql+psycopg2://pawprint_dev:pawprinttest@localhost:5432/pawprint_test_db"
+    return "postgresql+psycopg2://postgres@localhost:5432/pawprint_test_db"
 
 
 # FIXTURES FOR test_tracker.py
