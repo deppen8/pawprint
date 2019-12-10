@@ -12,10 +12,10 @@ from sqlalchemy.exc import ProgrammingError
 import pawprint
 
 
-def test_create_table_with_default_options(pawprint_default_db):
+def test_create_table_with_default_options(pawprint_default_tracker_db):
     """Ensure the table is correctly created with the default schema."""
 
-    tracker = pawprint_default_db
+    tracker = pawprint_default_tracker_db
 
     # The table shouldn't exist. Assert it's correct created.
     assert tracker.create_table() is None
@@ -46,10 +46,10 @@ def test_create_table_with_default_options(pawprint_default_db):
     assert schema == expected_schema
 
 
-def test_drop_table(pawprint_default_db_with_table):
+def test_drop_table(pawprint_default_tracker_db_with_table):
     """Ensure that tables are deleted successfully."""
 
-    tracker = pawprint_default_db_with_table
+    tracker = pawprint_default_tracker_db_with_table
 
     # make sure table exists
     with pytest.raises(ProgrammingError):
@@ -61,7 +61,7 @@ def test_drop_table(pawprint_default_db_with_table):
         tracker.drop_table()
 
 
-def test_instantiate_tracker_from_dot_file(drop_test_table):
+def test_instantiate_tracker_from_dot_file(drop_tracker_test_table):
     """Test instantiating a Tracker with a dotfile instead of using db and table strings."""
 
     # Write a dotfile to disk
@@ -85,7 +85,7 @@ def test_instantiate_tracker_from_dot_file(drop_test_table):
     os.remove(".pawprint")
 
 
-def test_create_table_with_other_options(drop_test_table, db_string, tracker_test_table_name):
+def test_create_table_with_other_options(drop_tracker_test_table, db_string, tracker_test_table_name):
     """Ensure the table is correctly created with an alternative schema."""
 
     schema = OrderedDict([("pk", "SERIAL PRIMARY KEY"), ("infofield", "TEXT")])
@@ -103,7 +103,7 @@ def test_create_table_with_other_options(drop_test_table, db_string, tracker_tes
     assert schema == [("pk", "integer", None), ("infofield", "text", None)]
 
 
-def test_write(drop_test_table, db_string, tracker_test_table_name):
+def test_write(drop_tracker_test_table, db_string, tracker_test_table_name):
     """Test the tracking of an event."""
 
     tracker = pawprint.Tracker(db=db_string, table=tracker_test_table_name, schema={"id": "INT"})
@@ -128,10 +128,10 @@ def test_write(drop_test_table, db_string, tracker_test_table_name):
     assert data.id[0] == 1337
 
 
-def test_read(pawprint_default_db_with_table):
+def test_read(pawprint_default_tracker_db_with_table):
     """Test pulling the data into a dataframe according to various simple filters."""
 
-    tracker = pawprint_default_db_with_table
+    tracker = pawprint_default_tracker_db_with_table
 
     # Ensure the table is empty to begin with
     assert len(tracker.read()) == 0
@@ -170,10 +170,10 @@ def test_read(pawprint_default_db_with_table):
     assert set(field_events.columns) == set(["event"])
 
 
-def test_counts(pawprint_default_db_with_table):
+def test_counts(pawprint_default_tracker_db_with_table):
     """Test counting a specific event, with date ranges and time resolutions."""
 
-    tracker = pawprint_default_db_with_table
+    tracker = pawprint_default_tracker_db_with_table
 
     # Add a bunch of events
     query = (
@@ -230,10 +230,10 @@ def test_counts(pawprint_default_db_with_table):
     assert len(logins_daily_full_range) == 2
 
 
-def test_sum_and_average(pawprint_default_db_with_table):
+def test_sum_and_average(pawprint_default_tracker_db_with_table):
     """Test aggregating a specific event, with date ranges and time resolutions."""
 
-    tracker = pawprint_default_db_with_table
+    tracker = pawprint_default_tracker_db_with_table
 
     metadata = str('{"val": 1}').replace("'", '"')
 
@@ -274,10 +274,10 @@ def test_sum_and_average(pawprint_default_db_with_table):
     assert np.all(x_avg_daily["avg"] == x_avg_daily_all["avg"])
 
 
-def test_parse_fields(pawprint_default_db):
+def test_parse_fields(pawprint_default_tracker_db):
     """Test args passed to read() and _aggregate() are parsed correctly."""
 
-    tracker = pawprint_default_db
+    tracker = pawprint_default_tracker_db
 
     # SELECT * FROM table
     args = ()
@@ -296,10 +296,10 @@ def test_parse_fields(pawprint_default_db):
     assert tracker._parse_fields(*args) == "metadata #> '{a, b}' AS json_field"
 
 
-def test_parse_values(pawprint_default_db):
+def test_parse_values(pawprint_default_tracker_db):
     """Test parsing values for write()."""
 
-    tracker = pawprint_default_db
+    tracker = pawprint_default_tracker_db
 
     # INSERT INTO table (event) VALUES ('logged_in')
     args = ("logged_in",)
@@ -310,10 +310,10 @@ def test_parse_values(pawprint_default_db):
     assert tracker._parse_values(*args) == "'logged_in', 'hannah'"
 
 
-def test_parse_conditionals(pawprint_default_db):
+def test_parse_conditionals(pawprint_default_tracker_db):
     """Test kwargs passed to read() and _aggregate() are parsed correctly."""
 
-    tracker = pawprint_default_db
+    tracker = pawprint_default_tracker_db
 
     # SELECT * FROM table
     kwargs = {}
@@ -335,10 +335,10 @@ def test_parse_conditionals(pawprint_default_db):
     assert tracker._parse_conditionals(**kwargs) == "WHERE event IN ('logged_in', 'logged_out')"
 
 
-def test_accessing_json_fields(pawprint_default_db_with_table):
+def test_accessing_json_fields(pawprint_default_tracker_db_with_table):
     """Test some structured data pulling."""
 
-    tracker = pawprint_default_db_with_table
+    tracker = pawprint_default_tracker_db_with_table
 
     # JSON objects in our tracking database
     simple = {"integral": "derivative"}
@@ -372,10 +372,10 @@ def test_accessing_json_fields(pawprint_default_db_with_table):
     assert full_depth.json_field.iloc[0] == "kfold"
 
 
-def test_json_maths(pawprint_default_db_with_table):
+def test_json_maths(pawprint_default_tracker_db_with_table):
     """More advanced operations on JSON subfields."""
 
-    tracker = pawprint_default_db_with_table
+    tracker = pawprint_default_tracker_db_with_table
 
     tracker.write(event="whisky", metadata={"uigeadail": {"value": 123, "lagavulin": [4, 2]}})
     tracker.write(event="whisky", metadata={"uigeadail": {"value": 456, "lagavulin": [5, 0]}})
@@ -456,9 +456,9 @@ def test_auto_timestamp(db_string):
     auto.drop_table()
 
 
-def test_repr_and_str(pawprint_default_db):
+def test_repr_and_str(pawprint_default_tracker_db):
     """Test the __repr__ and __str__."""
-    tracker = pawprint_default_db
+    tracker = pawprint_default_tracker_db
     expected_repr = "pawprint.Tracker on table '{}' and database '{}'".format(
         tracker.table, tracker.db
     )
@@ -467,9 +467,9 @@ def test_repr_and_str(pawprint_default_db):
     assert tracker.__str__() == expected_str
 
 
-def test_malicious_strings(pawprint_default_db_with_table):
+def test_malicious_strings(pawprint_default_tracker_db_with_table):
     """Test that SQL injection strings are sanitized"""
-    tracker = pawprint_default_db_with_table
+    tracker = pawprint_default_tracker_db_with_table
 
     tracker.write(
         event="armageddon",
@@ -500,8 +500,8 @@ def test_malicious_strings(pawprint_default_db_with_table):
     assert len(tracker.read()) == 3
 
 
-def test_escaping_from_quotes(pawprint_default_db_with_table):
-    tracker = pawprint_default_db_with_table
+def test_escaping_from_quotes(pawprint_default_tracker_db_with_table):
+    tracker = pawprint_default_tracker_db_with_table
     tracker.write(
         event="known crummy string",
         metadata={
