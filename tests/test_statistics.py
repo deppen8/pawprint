@@ -16,7 +16,7 @@ def test_sessions(pawprint_default_statistics_tracker):
     sessions = stats["sessions"].read()
 
     # Expected values
-    users = np.array(["Frodo", "Gandalf", "Frodo", "Frodo",])
+    users = np.array(["Frodo", "Gandalf", "Frodo", "Frodo"])
     durations = np.array([5, 40, 0, 4])
     events = np.array([6, 4, 1, 5])
 
