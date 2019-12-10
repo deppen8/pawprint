@@ -11,22 +11,22 @@ def db_string():
 
 
 @pytest.fixture(scope="session")
-def table_name():
+def tracker_test_table_name():
     return "pawprint_test_table"
 
 
 @pytest.fixture()
-def drop_test_table(tmpdir, db_string, table_name):
+def drop_test_table(tmpdir, db_string, tracker_test_table_name):
     yield
 
     try:
-        pd.io.sql.execute("DROP TABLE {}".format(table_name), db_string)
+        pd.io.sql.execute("DROP TABLE {}".format(tracker_test_table_name), db_string)
     except ProgrammingError:  # if can't delete table, skip
         pass
 
 
 @pytest.fixture()
-def pawprint_default_db(tmpdir, drop_test_table, db_string, table_name):
+def pawprint_default_db(tmpdir, drop_test_table, db_string, tracker_test_table_name):
     """Set up DB before tests, tear down after
 
     Parameters
@@ -35,11 +35,11 @@ def pawprint_default_db(tmpdir, drop_test_table, db_string, table_name):
         pytest built in tmpdir fixture
     """
     # TODO: setup DB
-    return pawprint.Tracker(db=db_string, table=table_name)
+    return pawprint.Tracker(db=db_string, table=tracker_test_table_name)
 
 
 @pytest.fixture()
-def pawprint_default_db_with_table(tmpdir, drop_test_table, db_string, table_name):
+def pawprint_default_db_with_table(tmpdir, drop_test_table, db_string, tracker_test_table_name):
     """Set up DB before tests, tear down after
 
     Parameters
@@ -48,7 +48,7 @@ def pawprint_default_db_with_table(tmpdir, drop_test_table, db_string, table_nam
         pytest built in tmpdir fixture
     """
     # TODO: setup DB
-    tracker = pawprint.Tracker(db=db_string, table=table_name)
+    tracker = pawprint.Tracker(db=db_string, table=tracker_test_table_name)
     tracker.create_table()
     return tracker
 

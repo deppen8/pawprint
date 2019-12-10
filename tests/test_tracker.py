@@ -85,11 +85,11 @@ def test_instantiate_tracker_from_dot_file(drop_test_table):
     os.remove(".pawprint")
 
 
-def test_create_table_with_other_options(drop_test_table, db_string, table_name):
+def test_create_table_with_other_options(drop_test_table, db_string, tracker_test_table_name):
     """Ensure the table is correctly created with an alternative schema."""
 
     schema = OrderedDict([("pk", "SERIAL PRIMARY KEY"), ("infofield", "TEXT")])
-    tracker = pawprint.Tracker(db=db_string, table=table_name, schema=schema)
+    tracker = pawprint.Tracker(db=db_string, table=tracker_test_table_name, schema=schema)
     tracker.create_table()
 
     # Ensure its schema is correct
@@ -103,10 +103,10 @@ def test_create_table_with_other_options(drop_test_table, db_string, table_name)
     assert schema == [("pk", "integer", None), ("infofield", "text", None)]
 
 
-def test_write(drop_test_table, db_string, table_name):
+def test_write(drop_test_table, db_string, tracker_test_table_name):
     """Test the tracking of an event."""
 
-    tracker = pawprint.Tracker(db=db_string, table=table_name, schema={"id": "INT"})
+    tracker = pawprint.Tracker(db=db_string, table=tracker_test_table_name, schema={"id": "INT"})
     tracker.create_table()
 
     # Check the table's empty
