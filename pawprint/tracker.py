@@ -1,7 +1,7 @@
 from collections import OrderedDict
 import json
 from datetime import datetime, timedelta
-
+from warnings import warn
 import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.exc import ProgrammingError, OperationalError
@@ -67,11 +67,11 @@ class Tracker(object):
 
     def drop_table(self):
         """Delete an existing table."""
-
         try:
             self.query("DROP TABLE {}".format(self.table))
         except ProgrammingError:
-            pass
+            warn("Table drop unsuccessful. Check that table exists.")
+            raise
 
     def write(self, **data):
         """
