@@ -122,13 +122,16 @@ class Statistics(object):
             last_entry = pd.read_sql(
                 "SELECT timestamp FROM {} ORDER BY timestamp DESC LIMIT 1".format(stats.table),
                 self.tracker.db,
-            ).values[0]
+            ).loc[0, "timestamp"]
         except ProgrammingError:  # otherwise, the table doesn't exist
             last_entry = None
 
         # If a start_date isn't passed, start from the last known date, or from the beginning
         if not start:
-            start = last_entry + timedelta(days=1) if last_entry else "1900-01-01"
+            if last_entry:
+                start = last_entry + timedelta(days=1)
+            else:
+                start = "1900-01-01"  # datetime(year=1900, month=1, day=1).date()
 
         # If we're also calculating by imposing a minimum number of events per user
         if min_sessions:
