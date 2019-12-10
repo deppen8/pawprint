@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/cbredev/pawprint.svg?token=XBew3A21j4GaAFCxzGsB&branch=master)](https://travis-ci.com/cbredev/pawprint) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/cbredev/pawprint/master/LICENSE)
+[![Build Status](https://travis-ci.org/QCaudron/pawprint.svg?branch=master)](https://travis-ci.org/QCaudron/pawprint) [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/QCaudron/pawprint/master/LICENSE)
 
 
 <img src="https://raw.githubusercontent.com/cbredev/pawprint/master/docs/images/pawprint.png" width="200px" align="right" />
