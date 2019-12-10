@@ -11,9 +11,5 @@ setup(
     packages=["pawprint"],
     zip_safe=False,
     test_suite="tests",
-    install_requires=[
-        "pandas>=0.19",
-        "sqlalchemy>=1.0",
-        "psycopg2>=2.4"
-    ]
+    install_requires=["pandas>=0.19", "sqlalchemy>=1.0", "psycopg2>=2.4"],
 )
