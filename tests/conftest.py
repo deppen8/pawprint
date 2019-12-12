@@ -72,6 +72,7 @@ def statistics_test_table_names():
         "tracker_table": "pawprint_test_statistics_table",
         "sessions_table": "pawprint_test_statistics_table__sessions",
         "engagement_table": "pawprint_test_statistics_table__engagement",
+        "event_session_map_table": "pawprint_test_statistics_table__event_session_map",
     }
 
 
