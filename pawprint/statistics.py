@@ -21,7 +21,7 @@ class Statistics(object):
 
         return Tracker(db=self.tracker.db, table="{}__{}".format(self.tracker.table, tracker))
 
-    def sessions(self, duration=30, clean=False):
+    def sessions(self, duration=30, clean=False, event_id_col="id"):
         """Create a table of user sessions."""
 
         # Create a tracker for basic interaction
@@ -59,8 +59,8 @@ class Statistics(object):
             return
 
         # Query : the timestamp and user for all events since the last recorded session start
-        query = "SELECT id, {}, {} FROM {}".format(
-            self.tracker.user_field, self.tracker.timestamp_field, self.tracker.table
+        query = "SELECT {}, {}, {} FROM {}".format(
+            event_id_col, self.tracker.user_field, self.tracker.timestamp_field, self.tracker.table
         )
         if last_entry:
             query += " WHERE {} > %(last_entry)s".format(self.tracker.timestamp_field)
