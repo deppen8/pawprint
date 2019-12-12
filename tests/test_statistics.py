@@ -124,3 +124,17 @@ def test_engagement_append_mode(pawprint_default_statistics_tracker):
     stickiness = stats["engagement"].read()
     assert len(stickiness) == 2
     assert len(stickiness.columns) == 9
+
+
+def test_event_session_map_table_created(pawprint_default_statistics_tracker):
+    tracker = pawprint_default_statistics_tracker
+    stats = pawprint.Statistics(tracker)
+    stats.sessions()
+
+    map_df = stats["event_session_map"].read()
+
+    assert len(map_df) == len(tracker.read())
+    assert all(
+        col in map_df.columns for col in ["event_id", "user_id", "timestamp", "session_timestamp"]
+    )
+    assert map_df["timestamp"].max() >= map_df["session_timestamp"].max()
