@@ -127,7 +127,7 @@ class Statistics(object):
         ).to_sql(stats.table, stats.db, if_exists="append", index=False)
 
         # Write event/session lookup table to the database
-        event_session_map_data = event_session_map_data.rename(columns={"id": "event_id"})
+        event_session_map_data = event_session_map_data.rename(columns={event_id_col: "event_id"})
         event_session_map_data[
             ["event_id", "user_id", "timestamp", "session_timestamp"]
         ].sort_values("session_timestamp").to_sql(
