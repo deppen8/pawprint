@@ -27,9 +27,13 @@ class Statistics(object):
         # Create a tracker for basic interaction
         stats = self["sessions"]
 
+        # Create a tracker for mapping events to sessions
+        event_session_map = self["event_session_map"]
+
         # If we're starting clean, delete the table
         if clean:
             stats.drop_table()
+            event_session_map.drop_table()
 
         # Determine whether the stats table exists and contains data, or if we should create one
         try:  # if this passes, the table exists and may contain data
@@ -55,7 +59,7 @@ class Statistics(object):
             return
 
         # Query : the timestamp and user for all events since the last recorded session start
-        query = "SELECT {}, {} FROM {}".format(
+        query = "SELECT id, {}, {} FROM {}".format(
             self.tracker.user_field, self.tracker.timestamp_field, self.tracker.table
         )
         if last_entry:
@@ -66,6 +70,7 @@ class Statistics(object):
 
         # Session durations DataFrame
         session_data = pd.DataFrame()
+        event_session_map_data = pd.DataFrame()
 
         # For each user, calculate session durations
         for user in users:
@@ -100,12 +105,34 @@ class Statistics(object):
                     "total_events": np.diff(breaks),
                 }
             )
+
+            session_starts = user_session_data["timestamp"].sort_values()
+            session_ends = pd.concat(
+                [user_session_data["timestamp"].sort_values().iloc[1:], pd.Series(user_times.max())]
+            ).reset_index(drop=True)
+            session_idxs = np.searchsorted(
+                session_ends.sort_values(), user_events[self.tracker.timestamp_field]
+            )
+            user_events["session_timestamp"] = session_starts[session_idxs].values
+            event_session_map_data = event_session_map_data.append(
+                user_events.loc[:, ["id", "user_id", "timestamp", "session_timestamp"]],
+                ignore_index=True,
+            )
+
             session_data = session_data.append(user_session_data, ignore_index=True)
 
         # Write the session durations to the database
         session_data[["timestamp", "user_id", "duration", "total_events"]].sort_values(
             "timestamp"
         ).to_sql(stats.table, stats.db, if_exists="append", index=False)
+
+        # Write event/session lookup table to the database
+        event_session_map_data = event_session_map_data.rename(columns={"id": "event_id"})
+        event_session_map_data[
+            ["event_id", "user_id", "timestamp", "session_timestamp"]
+        ].sort_values("session_timestamp").to_sql(
+            event_session_map.table, event_session_map.db, if_exists="append", index=False
+        )
 
     def engagement(self, clean=False, start=None, min_sessions=3):
         """Calculates the daily and monthly average users, and the stickiness as the ratio."""
