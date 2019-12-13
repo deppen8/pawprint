@@ -21,7 +21,7 @@ class Statistics(object):
 
         return Tracker(db=self.tracker.db, table="{}__{}".format(self.tracker.table, tracker))
 
-    def sessions(self, duration=30, clean=False):
+    def sessions(self, duration=30, clean=False, event_id_col="id"):
         """Create a table of user sessions."""
 
         # Create a tracker for basic interaction
@@ -38,9 +38,11 @@ class Statistics(object):
         # Determine whether the stats table exists and contains data, or if we should create one
         try:  # if this passes, the table exists and may contain data
             last_entry = pd.read_sql(
-                "SELECT timestamp FROM {} ORDER BY timestamp DESC LIMIT 1".format(stats.table),
+                "SELECT timestamp FROM {} ORDER BY timestamp DESC LIMIT 1".format(
+                    event_session_map.table
+                ),
                 self.tracker.db,
-            ).values[0][0]
+            ).loc[0, "timestamp"]
         except ProgrammingError:  # otherwise, the table doesn't exist
             last_entry = None
 
@@ -51,16 +53,14 @@ class Statistics(object):
         params = {"last_entry": str(last_entry)}
 
         # Get the list of unique users since the last data we've tracked
-        try:
-            users = pd.read_sql(query, self.tracker.db, params=params)[
-                self.tracker.user_field
-            ].values
-        except IndexError:  # no users since the last recorded session
+        users = pd.read_sql(query, self.tracker.db, params=params)[self.tracker.user_field].values
+
+        if len(users) == 0:
             return
 
         # Query : the timestamp and user for all events since the last recorded session start
-        query = "SELECT id, {}, {} FROM {}".format(
-            self.tracker.user_field, self.tracker.timestamp_field, self.tracker.table
+        query = "SELECT {}, {}, {} FROM {}".format(
+            event_id_col, self.tracker.user_field, self.tracker.timestamp_field, self.tracker.table
         )
         if last_entry:
             query += " WHERE {} > %(last_entry)s".format(self.tracker.timestamp_field)
@@ -127,7 +127,7 @@ class Statistics(object):
         ).to_sql(stats.table, stats.db, if_exists="append", index=False)
 
         # Write event/session lookup table to the database
-        event_session_map_data = event_session_map_data.rename(columns={"id": "event_id"})
+        event_session_map_data = event_session_map_data.rename(columns={event_id_col: "event_id"})
         event_session_map_data[
             ["event_id", "user_id", "timestamp", "session_timestamp"]
         ].sort_values("session_timestamp").to_sql(
