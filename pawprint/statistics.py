@@ -38,9 +38,11 @@ class Statistics(object):
         # Determine whether the stats table exists and contains data, or if we should create one
         try:  # if this passes, the table exists and may contain data
             last_entry = pd.read_sql(
-                "SELECT timestamp FROM {} ORDER BY timestamp DESC LIMIT 1".format(stats.table),
+                "SELECT timestamp FROM {} ORDER BY timestamp DESC LIMIT 1".format(
+                    event_session_map.table
+                ),
                 self.tracker.db,
-            ).values[0][0]
+            ).loc[0, "timestamp"]
         except ProgrammingError:  # otherwise, the table doesn't exist
             last_entry = None
 
@@ -51,11 +53,9 @@ class Statistics(object):
         params = {"last_entry": str(last_entry)}
 
         # Get the list of unique users since the last data we've tracked
-        try:
-            users = pd.read_sql(query, self.tracker.db, params=params)[
-                self.tracker.user_field
-            ].values
-        except IndexError:  # no users since the last recorded session
+        users = pd.read_sql(query, self.tracker.db, params=params)[self.tracker.user_field].values
+
+        if len(users) == 0:
             return
 
         # Query : the timestamp and user for all events since the last recorded session start
