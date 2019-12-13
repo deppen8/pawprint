@@ -27,7 +27,7 @@ def test_sessions(pawprint_default_statistics_tracker):
     assert np.all(sessions.total_events == events)
 
     stats.sessions(clean=False)
-    assert len(stats["sessions"].read()) == 5
+    assert len(stats["sessions"].read()) == 4
 
     # Test that calculating sessions with no new data doesn't error
     stats.sessions()
