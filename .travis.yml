@@ -15,21 +15,20 @@ services:
   - postgresql
 
 # command to install dependencies
-install: 
+install:
   - pip install -U pip wheel
-  - pip install -r requirements.txt
-  - pip install -U pytest
-  - pip install -U coverage 
-  - pip install -U coveralls 
+  - pip install -r requirements_dev.txt
+  - pip install -U coveralls
   - pip install -U .
 
 before_script:
-  - psql -c 'create database pawprint_test_db;' -U postgres
-        
+  - psql -c 'CREATE DATABASE pawprint_test_db;' -U postgres
+  - psql -c "CREATE USER pawprint_dev WITH PASSWORD pawprinttest;" -U postgres
+
 # command to run tests
-script: 
-  - coverage run --source pawprint -m pytest tests -v
+script:
+  - coverage run --source pawprint -m pytest tests -v --test_env travis
   - coverage report -m --fail-under=90
 
 after_success:
-  - coveralls 
+  - coveralls
