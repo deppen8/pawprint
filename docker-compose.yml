@@ -1,0 +1,24 @@
+version: '3'
+services:
+    python:
+        build: .
+        container_name: pawprint_python
+        volumes:
+            - ./pawprint/:./
+        depends_on:
+            - postgres
+        environment:
+            - POSTGRES_USER=pawprint
+            - POSTGRES_PASSWORD=pawprinttest
+            - POSTGRES_DB=pawprint_test_db
+            - POSTGRES_HOST=localhost
+        tty: true
+    postgres:
+        image: postgres:9.6
+        container_name: pawprint_db
+        environment:
+            - POSTGRES_USER=pawprint
+            - POSTGRES_PASSWORD=pawprinttest
+            - POSTGRES_DB=pawprint_test_db
+        ports:
+            - "5432"

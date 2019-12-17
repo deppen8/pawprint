@@ -6,12 +6,37 @@ from sqlalchemy.exc import ProgrammingError
 import logging
 
 
+# Add CLI argument to specify testing environment
+def pytest_addoption(parser):
+    parser.addoption(
+        "--test_env",
+        action="store",
+        required=True,
+        choices=["docker", "local", "travis"],
+        help="Set the location where the tests will be run.",
+    )
+
+
 # GENERAL-USE FIXTURES
 
 
 @pytest.fixture(scope="session")
-def db_string():
-    return "postgresql+psycopg2://postgres@localhost:5432/pawprint_test_db"
+def test_env(request):
+    env = request.config.getoption("--test_env")
+    if env in ["local", "travis"]:
+        return "localhost"
+    elif env in ["docker"]:
+        return "pawprint_db"
+    else:
+        raise ValueError("--test_env must be one of 'docker', 'local', or 'travis'")
+
+
+@pytest.fixture(scope="session")
+def db_string(test_env):
+    # return "postgresql+psycopg2://postgres@localhost:5432/pawprint_test_db"
+    return "postgresql+psycopg2://pawprint_dev:pawprinttest@{}:5432/pawprint_test_db".format(
+        test_env
+    )
 
 
 # FIXTURES FOR test_tracker.py
