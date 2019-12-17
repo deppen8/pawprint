@@ -22,8 +22,8 @@ install:
   - pip install -U .
 
 before_script:
-  - psql -c 'CREATE DATABASE pawprint_test_db;' -U postgres
-  - psql -c 'CREATE USER pawprint_dev WITH PASSWORD pawprinttest;' -U postgres
+  - psql -c "CREATE DATABASE pawprint_test_db;" -U postgres
+  - psql -c "CREATE USER pawprint_dev WITH PASSWORD 'pawprinttest';" -U postgres
 
 # command to run tests
 script:
